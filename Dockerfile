@@ -3,7 +3,7 @@
 ##
 ## Build frontend
 ##
-FROM node:20-alpine AS frontend-build
+FROM node:22-alpine AS frontend-build
 WORKDIR /app/frontend
 
 RUN npm config set registry https://registry.npmjs.org/
@@ -17,8 +17,11 @@ RUN npm run build
 ##
 ## Install backend deps
 ##
-FROM node:20-alpine AS backend-deps
+FROM node:22-alpine AS backend-deps
 WORKDIR /app/backend
+
+# Install build dependencies for native modules (e.g. better-sqlite3)
+RUN apk add --no-cache python3 make g++
 
 RUN npm config set registry https://registry.npmjs.org/
 
@@ -28,7 +31,7 @@ RUN npm ci --omit=dev
 ##
 ## Runtime image (single container: backend serves frontend static files)
 ##
-FROM node:20-alpine AS runtime
+FROM node:22-alpine AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production
