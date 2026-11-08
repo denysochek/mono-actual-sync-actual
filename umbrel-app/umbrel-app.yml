@@ -1,0 +1,31 @@
+manifestVersion: 1
+id: mono-actual-sync
+name: Mono Actual Sync
+tagline: Sync transactions from Monobank into Actual Budget
+category: finance
+version: "1.0.0"
+port: 9191
+description: >-
+  Self-hosted web application that bridges Ukrainian Monobank accounts directly
+  into your Actual Budget server.
+
+  Features:
+  - Simple, modern Web UI
+  - Real-time and manual sync (last 7/14/30/90 days, by month, or custom date range)
+  - Automatic scheduled background sync (node-cron)
+  - Multi-card mapping (supports personal cards, cashback, jars, and FOP accounts)
+  - Full support for the latest Actual Budget (26.x)
+  - Bilingual UI with Ukrainian (Українська) and English language support
+developer: denysochek
+website: https://github.com/denysochek/mono-actual-sync-actual
+repo: https://github.com/denysochek/mono-actual-sync-actual
+support: https://github.com/denysochek/mono-actual-sync-actual/issues
+gallery: []
+path: ""
+defaultPassword: ""
+submitter: denysochek
+submission: https://github.com/denysochek/mono-actual-sync-actual
+releaseNotes: >-
+  - Updated to latest Actual Budget API (26.x)
+  - Added full Ukrainian localization with instant language switcher
+  - Native Umbrel and Dockge integration

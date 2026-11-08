@@ -1,0 +1,19 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: mono-actual-sync_server_1
+      APP_PORT: 9191
+      PROXY_AUTH_ADD: "false"
+
+  server:
+    image: ghcr.io/denysochek/mono-actual-sync-actual:latest
+    container_name: mono-actual-sync_server_1
+    restart: on-failure
+    environment:
+      PORT: "9191"
+      TZ: "Europe/Kyiv"
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
+    volumes:
+      - ${APP_DATA_DIR}/data:/app/backend/data
