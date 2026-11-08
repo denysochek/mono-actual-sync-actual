@@ -9,6 +9,9 @@ description: >-
   Self-hosted web application that bridges Ukrainian Monobank accounts directly
   into your Actual Budget server.
 
+  Original author: sviatcraft (https://github.com/sviatcraft/mono-actual-sync).
+  Forked and enhanced by reCrafted AI / denysochek.
+
   Features:
   - Simple, modern Web UI
   - Real-time and manual sync (last 7/14/30/90 days, by month, or custom date range)
@@ -16,7 +19,7 @@ description: >-
   - Multi-card mapping (supports personal cards, cashback, jars, and FOP accounts)
   - Full support for the latest Actual Budget (26.x)
   - Bilingual UI with Ukrainian (Українська) and English language support
-developer: denysochek
+developer: "sviatcraft (forked by reCrafted AI)"
 website: https://github.com/denysochek/mono-actual-sync-actual
 repo: https://github.com/denysochek/mono-actual-sync-actual
 support: https://github.com/denysochek/mono-actual-sync-actual/issues

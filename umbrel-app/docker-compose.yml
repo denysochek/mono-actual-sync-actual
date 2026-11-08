@@ -17,3 +17,4 @@ services:
       NODE_TLS_REJECT_UNAUTHORIZED: "0"
     volumes:
       - ${APP_DATA_DIR}/data:/app/backend/data
+
