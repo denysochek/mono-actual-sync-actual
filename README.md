@@ -1,34 +1,39 @@
 # Monobank → Actual Budget Sync
 
-Self-hosted web UI that syncs transactions from **Monobank** into an **Actual Budget** server.
+Зручний self-hosted веб-інтерфейс для синхронізації банківських транзакцій з **Monobank** у ваш сервер **Actual Budget**.
 
-The goal is “start it, open the UI, configure, sync” — no env-var juggling required for normal use. 
+Форк оригінального проекту [sviatcraft/mono-actual-sync](https://github.com/sviatcraft/mono-actual-sync) з покращеннями:
+- 🔄 **Оновлено `@actual-app/api` до останньої версії (26.x)** для сумісності з сучасними версіями сервера Actual Budget.
+- 🇺🇦 **Додано українську мову (i18n)** з можливістю зручного перемикання (UA 🇺🇦 / EN 🇬🇧) у шапці.
+- 🚀 **Повна сумісність з UmbrelOS / Dockge / чистим Docker Compose**.
 
-## Quickstart (Standard Docker)
+---
 
-The easiest way to run the app is using the pre-built Docker image from the GitHub Container Registry. *(If you are using CasaOS, skip to the CasaOS section below).*
+## ⚡ Швидкий старт (Docker Compose)
 
-### 1) Prerequisites
-- Docker with `docker compose`
-- An Actual Budget server you can reach from this container (URL + password + **Budget Sync ID**)
-- A Monobank **Personal Token**
+### 1) Вимоги
+- Встановлений Docker та Docker Compose
+- Працюючий сервер Actual Budget (URL + Пароль + **Budget Sync ID**)
+- Особистий токен Monobank ([api.monobank.ua](https://api.monobank.ua/))
 
-### 2) Start the app
-Create a `docker-compose.yml` file:
+### 2) Запуск через `docker-compose.yml`
+
+Створіть файл `docker-compose.yml`:
 
 ```yaml
 services:
   mono-actual-sync:
-    image: ghcr.io/sviatcraft/mono-actual-sync:latest
+    image: ghcr.io/denysochek/mono-actual-sync-actual:latest
     container_name: mono-actual-sync
     ports:
       - "9191:9191"
     environment:
       PORT: "9191"
-      # Set your timezone so imported transaction dates match your local day boundary.
+      # Вкажіть ваш часовий пояс для коректного обліку дат транзакцій
       TZ: "Europe/Kyiv"
+      # Якщо підключаєтесь до локального Actual з самопідписаним SSL (https):
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
     volumes:
-      # Standard Docker named volume
       - mono_actual_sync_data:/app/backend/data
     restart: unless-stopped
 
@@ -36,164 +41,135 @@ volumes:
   mono_actual_sync_data:
 ```
 
-Run the following command in the same directory:
+Запустіть контейнер:
 ```bash
 docker compose up -d
 ```
-Open `http://localhost:9191` (or your server's IP if you changed the port mapping).
+Відкрийте у браузері: `http://localhost:9191` (або `http://IP_сервера:9191`).
 
 ---
 
-## CasaOS Installation
+## ☂️ Встановлення на Umbrel (UmbrelOS / Dockge)
 
-This app supports native CasaOS integration. The easiest way to install it is to import the custom configuration below, which automatically handles the app icon, web UI routing, and saves your configuration directly to your CasaOS `AppData` folder.
+Якщо ви використовуєте **UmbrelOS**:
 
-**Installation Steps:**
-
-1. Open your CasaOS Dashboard.
-2. Click the **+** icon and select **Install a customized app**.
-3. Click the **Import** button in the top right.
-4. Paste the following code into the import window:
+### Спосіб 1: Через додаток Dockge на Umbrel (Найзручніше)
+1. Встановіть **Dockge** з Umbrel App Store (якщо ще не встановлено).
+2. Відкрийте Dockge і створіть новий стек (наприклад, `mono-actual-sync`).
+3. Вставте такий compose-конфіг:
 
 ```yaml
 services:
   mono-actual-sync:
-    image: ghcr.io/sviatcraft/mono-actual-sync:latest
+    image: ghcr.io/denysochek/mono-actual-sync-actual:latest
     container_name: mono-actual-sync
-    ports:
-      - "9191:9191"
+    network_mode: host
     environment:
       PORT: "9191"
-      TZ: "Europe/Kyiv"
+      TZ: Europe/Kyiv
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
     volumes:
-      # CasaOS-specific bind mount for easy file access in the Files app
-      - /DATA/AppData/mono-actual-sync:/app/backend/data
+      - mono_actual_sync_data:/app/backend/data
     restart: unless-stopped
 
-# --- CasaOS App Store Metadata ---
-x-casaos:
-  architectures:
-    - amd64
-    - arm64
-  main: "mono-actual-sync"
-  description:
-    en_us: "Self-hosted web UI that syncs transactions from Monobank into an Actual Budget server. Set it up once, map your accounts, and easily keep your budget up to date with manual or hourly background syncs."
-  tagline:
-    en_us: "Bridge Monobank to Actual Budget"
-  developer: "sviatcraft"
-  author: "sviatcraft"
-  icon: "https://raw.githubusercontent.com/sviatcraft/mono-actual-sync/main/frontend/public/favicon.svg" 
-  thumbnail: ""
-  title:
-    en_us: "Mono Actual Sync"
-  category: "Finance"
-  port_map: "9191"
-  index: "/"
-  tips:
-    before_install:
-      en_us: "You will need your Monobank Personal Token and an existing Actual Budget server (URL, Password, and Sync ID) to configure this app after installation."
+volumes:
+  mono_actual_sync_data:
 ```
-5. Click **Submit**, ensure the visual fields are populated, and then click **Install**.
+> **Чому `network_mode: host`?**  
+> На Umbrel це дозволяє контейнеру бачити інші додатки (зокрема Actual Budget) безпосередньо через `http://127.0.0.1:5006` або локальну мережу хоста без проблем з ізоляцією докер-мереж.
+
+4. Натисніть **Deploy**.
 
 ---
 
-## Configuration in the UI
-
-Once the app is running, open the web UI:
-
-- Paste your Monobank token.
-- Enter Actual `Server URL`, `Server Password`, and `Budget Sync ID`.
-- Fetch accounts, then map Monobank accounts/cards/jars → Actual accounts.
-- Click **Sync now** (optionally enable hourly background sync).
-
----
-
-## Important security note (read before exposing)
-
-- There is currently **no login / authentication** for `/api/*`.
-- The default configuration binds to `0.0.0.0:9191`, making the UI/API reachable from your LAN.
-- Anyone on the same network who can reach the service can read decrypted config (including tokens) and trigger syncs. **Do not expose this port to the public internet.**
-- To restrict access to localhost only, change the port mapping to `"127.0.0.1:9191:9191"`.
-
-## Data persistence + encryption (automatic)
-
-- Configuration is saved to the `/data` folder (encrypted at rest).
-- The encryption key is stored alongside it in `.encryption_key`.
-- **CasaOS Users:** You can easily back up these files by opening the CasaOS **Files** app and navigating to `AppData/mono-actual-sync`.
-- **Backup tip:** back up `config.json` and `.encryption_key` together — losing the key means the config can’t be decrypted.
-
-## Common setup gotcha: Actual server URL from Docker
-
-The Actual `Server URL` must be reachable **from inside the container**.
-
-- If Actual runs on another machine: use that machine’s LAN IP/hostname + port.
-- If Actual runs on the same computer:
-  - macOS/Windows Docker Desktop usually supports `http://host.docker.internal:<port>`
-  - Linux (including CasaOS) generally requires using your host’s LAN IP (e.g., `http://192.168.1.X:5006`).
-
-## Features
-
-- Web UI to configure credentials, mapping, and automation
-- Manual “Sync now”
-- Optional hourly background sync (node-cron)
-- Basic protection against Monobank rate limits (60s cooldown between Monobank calls)
+### Спосіб 2: Встановлення напряму в Umbrel через Custom App / CLI
+1. Підключіться до вашого Umbrel через SSH:
+   ```bash
+   ssh umbrel@umbrel.local
+   ```
+2. Створіть директорію для сервісу:
+   ```bash
+   mkdir -p ~/umbrel/app-data/mono-actual-sync
+   cd ~/umbrel/app-data/mono-actual-sync
+   ```
+3. Створіть файл `docker-compose.yml`:
+   ```yaml
+   services:
+     mono-actual-sync:
+       image: ghcr.io/denysochek/mono-actual-sync-actual:latest
+       container_name: mono-actual-sync
+       restart: unless-stopped
+       network_mode: host
+       environment:
+         PORT: "9191"
+         TZ: "Europe/Kyiv"
+         NODE_TLS_REJECT_UNAUTHORIZED: "0"
+       volumes:
+         - ./data:/app/backend/data
+   ```
+4. Запустіть сервіс:
+   ```bash
+   docker compose up -d
+   ```
+Додаток буде доступний за адресою `http://umbrel.local:9191` (або за IP вашого Umbrel).
 
 ---
 
-## Advanced: Building from Source
+## 🛠 Налаштування через веб-інтерфейс
 
-If you prefer to build the Docker image locally instead of using the pre-built registry image:
+Після запуску додатку перейдіть до інтерфейсу:
+1. **Підключення (Connections)**:
+   - Введіть **Monobank Personal Token**.
+   - Вкажіть **Server URL** для Actual Budget (наприклад: `http://192.168.1.X:5006` або `http://127.0.0.1:5006` при `network_mode: host`).
+   - Вкажіть **Server Password** та **Budget Sync ID** (знаходиться в Actual Budget: *Налаштування ➔ Додатково*).
+   - Натисніть **Зберегти та перевірити підключення**.
+2. **Прив'язка карток (Card Mapping)**:
+   - Прив'яжіть картки/банки/ФОП-рахунки Monobank до відповідних рахунків в Actual Budget.
+3. **Панель (Dashboard)**:
+   - Запускайте ручну синхронізацію: за останній тиждень, місяць або довільний період.
+   - За потреби увімкніть фонову синхронізацію (щогодини або за розкладом).
+
+---
+
+## 🔒 Безпека та збереження даних
+
+- **Дані конфігурації:** автоматично шифруються та зберігаються у папці `/data` (`config.json` разом із ключем `.encryption_key`).
+- **Мережа:** Додаток не має внутрішньої авторизації для API, тому **не публікуйте порт 9191 назовні в інтернет** без VPN (Tailscale/WireGuard) або захисного проксі з авторизацією (Cloudflare Access / Authelia).
+
+---
+
+## 💻 Локальна збірка з вихідного коду (Local Build)
+
+Якщо ви бажаєте зібрати Docker-образ локально самостійно:
 
 ```bash
-git clone [https://github.com/sviatcraft/mono-actual-sync.git](https://github.com/sviatcraft/mono-actual-sync.git)
-cd mono-actual-sync
-docker compose -f docker-compose.dev.yml up --build -d
-```
-*(Requires creating a local `docker-compose.dev.yml` that uses `build: .` instead of the `image` key).*
-
-## Advanced: local development (two processes)
-
-Prereqs: Node.js 18+ and npm.
-
-**1) Backend**
-```bash
-cd backend
-npm install
-npm run dev
+git clone https://github.com/denysochek/mono-actual-sync-actual.git
+cd mono-actual-sync-actual
+docker build -t mono-actual-sync:local .
+docker run -d -p 9191:9191 -v $(pwd)/data:/app/backend/data mono-actual-sync:local
 ```
 
-**2) Frontend**
-```bash
-cd frontend
-npm install
-npm run dev
-```
+### Запуск для розробки (Development):
 
-Open the Vite dev server URL (usually `http://localhost:5173`). In dev, Vite proxies `/api` → `http://localhost:9191` (see `frontend/vite.config.js`).
+Потрібен Node.js (20+):
+
+1. **Бекенд:**
+   ```bash
+   cd backend
+   npm install
+   npm run dev
+   ```
+2. **Фронтенд:**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+   Фронтенд запуститься на `http://localhost:5173` і автоматично проксуватиме запити до бекенду на `:9191`.
 
 ---
 
-## Backend API (for debugging)
-
-Endpoints (all under `/api`):
-
-- `GET /api/config` – returns decrypted config (or defaults)
-- `POST /api/config` – saves config (encrypted) and (re)starts cron depending on `useNodeCron`
-- `POST /api/fetch-accounts` – verifies credentials, fetches account lists, persists `accountCache`
-- `POST /api/sync` – starts a sync using the saved config
-- `GET /api/sync-status` – returns `{ isSyncing: boolean }`
-
-Rate limiting:
-- Enforces a 60s cooldown between Monobank calls (returns `429` with a `waitTime`).
-
-## Troubleshooting
-
-- **“Rate limit active”**: Monobank calls are gated to 1 request per 60 seconds. Wait for the cooldown.
-- **Actual connection errors**: Double-check Actual `Server URL`, `Budget Sync ID`, and `Server Password`. Remember to use your server's LAN IP if running on Linux/CasaOS.
-- **“Invalid Personal Token”**: Recreate or re-copy the Monobank Personal Token.
-
-## Status / roadmap
-
-- [x] Publish pre-built Docker image to GHCR.
-- [x] Add `x-casaos` metadata for true 1-click CasaOS App Store integration.
-- [ ] Add optional app-level authentication for `/api/*` (e.g. `APP_TOKEN` / Basic Auth)
+## 👏 Подяки
+- Базовий проект та ідея: [sviatcraft/mono-actual-sync](https://github.com/sviatcraft/mono-actual-sync)
+- За натхнення у роботі з Monobank API: [dnullproject/mono-to-actualbudget](https://github.com/dnullproject/mono-to-actualbudget)
+- Команді [Actual Budget](https://actualbudget.org/) за чудову систему бюджетування.
