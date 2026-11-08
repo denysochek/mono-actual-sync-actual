@@ -1,6 +1,6 @@
 manifestVersion: 1
 id: mono-actual-sync
-name: Mono Actual Sync
+name: Actual-Mono
 tagline: Sync transactions from Monobank into Actual Budget
 category: finance
 version: "1.0.0"
