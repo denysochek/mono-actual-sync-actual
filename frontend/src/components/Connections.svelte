@@ -1,4 +1,5 @@
 <script>
+  import { t } from '../i18n.js';
   let { config = $bindable(), saveConfig, fetchApiData, cooldown, changeView } = $props();
 
   let verifyState = $state('idle'); // idle | verifying | success | error
@@ -22,8 +23,8 @@
 
 <form onsubmit={(e) => { e.preventDefault(); handleVerifyAndSave(); }}>
   <hgroup>
-    <h2>Connections</h2>
-    <p>Configure your data source and destination servers.</p>
+    <h2>{$t.connectionsTitle}</h2>
+    <p>{$t.connectionsDesc}</p>
   </hgroup>
 
   <fieldset 
@@ -32,39 +33,39 @@
   >
     <article>
       <header>
-        <strong>Destination: Actual Budget</strong>
+        <strong>{$t.destActual}</strong>
       </header>
       
       <div class="grid">
         <label>
-          Server URL
+          {$t.actualUrl}
           <input 
             type="url" 
             bind:value={config.actualUrl} 
             placeholder="http://192.168.1.100:15006" 
             required 
           />
-          <small>The local IP or domain of your Actual server.</small>
+          <small>{$t.actualUrlHint}</small>
         </label>
         
         <label>
-          Budget Sync ID
+          {$t.actualSyncId}
           <input 
             type="text" 
             bind:value={config.actualSyncId} 
             placeholder="My-Finances-183e" 
             required 
           />
-          <small>Found in Actual Budget ➔ Settings ➔ Advanced.</small>
+          <small>{$t.actualSyncIdHint}</small>
         </label>
       </div>
 
       <label>
-        Server Password
+        {$t.actualPassword}
         <input 
           type="text" 
           bind:value={config.actualPassword} 
-          placeholder="Leave blank if no password" 
+          placeholder={$t.actualPasswordPlaceholder} 
           style="-webkit-text-security: disc;" 
         />
       </label>
@@ -72,11 +73,11 @@
 
     <article>
       <header>
-        <strong>Source: Monobank API</strong>
+        <strong>{$t.sourceMono}</strong>
       </header>
       
       <label>
-        Personal Token
+        {$t.monoToken}
         <input 
           type="text" 
           bind:value={config.monoToken} 
@@ -84,7 +85,7 @@
           style="-webkit-text-security: disc;" 
           required 
         />
-        <small>Get this from <a href="https://api.monobank.ua/" target="_blank" rel="noopener noreferrer">api.monobank.ua</a></small>
+        <small>{$t.monoTokenHint} <a href="https://api.monobank.ua/" target="_blank" rel="noopener noreferrer">api.monobank.ua</a></small>
       </label>
     </article>
   </fieldset>
@@ -92,7 +93,7 @@
   {#if verifyState === 'error'}
     <div style="margin-top: 1rem;">
       <mark style="background-color: var(--pico-del-color); color: #fff; display: block; padding: 0.5rem; border-radius: var(--pico-border-radius);">
-        <strong>⚠️ Verification Failed:</strong> {verifyError}
+        <strong>⚠️ {$t.verificationFailed}</strong> {verifyError}
       </mark>
     </div>
   {/if}
@@ -107,8 +108,8 @@
             ✓
           </div>
           <div>
-            <strong style="display: block; line-height: 1.2;">Securely Connected</strong>
-            <small style="color: var(--pico-muted-color);">Authenticated with Monobank & Actual Budget</small>
+            <strong style="display: block; line-height: 1.2;">{$t.securelyConnected}</strong>
+            <small style="color: var(--pico-muted-color);">{$t.authenticatedDesc}</small>
           </div>
         </div>
         <button 
@@ -116,7 +117,7 @@
           onclick={() => changeView('mapping')} 
           style="width: auto; margin: 0; padding: 0.5rem 1.5rem;"
         >
-          Proceed to Card Mapping ➔
+          {$t.proceedToMapping}
         </button>
       </div>
 
@@ -129,11 +130,11 @@
           style="width: auto; padding: 0.5rem 1.5rem;"
         >
           {#if cooldown > 0}
-            ⏳ Rate Limit Cooldown: {cooldown}s
+            {$t.cooldownWait(cooldown)}
           {:else if verifyState === 'verifying'}
-            Connecting to APIs...
+            {$t.connectingApis}
           {:else}
-            💾 Save & Verify Connections
+            {$t.saveAndVerify}
           {/if}
         </button>
       </div>

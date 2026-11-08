@@ -1,12 +1,13 @@
 <script>
+  import { t } from '../../i18n.js';
   let { config = $bindable(), saveConfig, saveStatus, isReady } = $props();
 
-  const FREQUENCIES = [
-    { value: 'daily', label: 'Daily', cron: '2:00 AM' },
-    { value: 'hourly', label: 'Hourly', cron: 'every hour at :00' },
-    { value: '30min', label: 'Every 30 min', cron: 'at :00 and :30' },
-    { value: '15min', label: 'Every 15 min', cron: 'at :00, :15, :30, :45' },
-  ];
+  let frequencies = $derived([
+    { value: 'daily', label: $t.daily, cron: $t.cronDaily },
+    { value: 'hourly', label: $t.hourly, cron: $t.cronHourly },
+    { value: '30min', label: $t.every30min, cron: $t.cron30min },
+    { value: '15min', label: $t.every15min, cron: $t.cron15min },
+  ]);
 
   function getNextRunTime() {
     const interval = config?.cronInterval || 'hourly';
@@ -56,17 +57,17 @@
 
 <article>
   <header style="display: flex; justify-content: space-between; align-items: center; background-color: var(--pico-form-element-background-color);">
-    <strong>Background Automation</strong>
+    <strong>{$t.backgroundAutomation}</strong>
     {#if config?.useNodeCron}
-      <span style="font-size: 0.8rem; color: var(--pico-ins-color); font-weight: bold;">● Active</span>
+      <span style="font-size: 0.8rem; color: var(--pico-ins-color); font-weight: bold;">{$t.statusActive}</span>
     {:else}
-      <span style="font-size: 0.8rem; color: var(--pico-del-color); font-weight: bold;">○ Disabled</span>
+      <span style="font-size: 0.8rem; color: var(--pico-del-color); font-weight: bold;">{$t.statusDisabled}</span>
     {/if}
   </header>
 
   {#if !isReady}
     <p style="margin: 1rem 0 0; font-size: 0.85rem; color: var(--pico-muted-color);">
-      <small>Automation will unlock once your Connections are configured.</small>
+      <small>{$t.automationUnlockNotice}</small>
     </p>
   {:else}
     <div style="margin-top: 0.5rem;">
@@ -75,12 +76,12 @@
         <!-- Enable/Disable Toggle -->
         <div class="setting-row">
           <div>
-            <label style="margin-bottom: 0.25rem;"><strong>Enable Automation</strong></label>
+            <label style="margin-bottom: 0.25rem;"><strong>{$t.enableAutomation}</strong></label>
             <div style="font-size: 0.8rem; color: var(--pico-muted-color);">
               {#if config?.useNodeCron}
-                Next run: <strong style="color: var(--pico-color);">~ {getNextRunTime()}</strong>
+                {$t.nextRun} <strong style="color: var(--pico-color);">~ {getNextRunTime()}</strong>
               {:else}
-                Automatically sync transactions on a schedule.
+                {$t.automaticallySyncSchedule}
               {/if}
             </div>
           </div>
@@ -94,9 +95,9 @@
 
           <!-- Frequency Selector -->
           <div>
-            <label style="margin-bottom: 0.5rem; display: block;"><strong>Sync Frequency</strong></label>
+            <label style="margin-bottom: 0.5rem; display: block;"><strong>{$t.syncFrequency}</strong></label>
             <div class="freq-row">
-              {#each FREQUENCIES as freq}
+              {#each frequencies as freq}
                 <button
                   type="button"
                   class="freq-btn"
@@ -106,8 +107,8 @@
               {/each}
             </div>
             <small style="color: var(--pico-muted-color); display: block; margin-top: 0.5rem;">
-              Runs {FREQUENCIES.find((f) => f.value === (config.cronInterval || 'hourly'))?.cron || 'every hour'}
-              &nbsp;·&nbsp; Syncs last <strong>7 days</strong> each run
+              {$t.runsFreq(frequencies.find((f) => f.value === (config.cronInterval || 'hourly'))?.cron || 'every hour')}
+              &nbsp;·&nbsp; {$t.syncsLastDays(7)}
             </small>
           </div>
         {/if}

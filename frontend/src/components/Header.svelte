@@ -1,22 +1,38 @@
 <script>
+  import { t, currentLang, setLanguage } from '../i18n.js';
   export let toggleTheme;
+
+  function toggleLanguage() {
+    setLanguage($currentLang === 'uk' ? 'en' : 'uk');
+  }
 </script>
 
 <header class="is-fixed-above">
   <div class="container">
     <nav>
       <ul>
-        <li>
-          Mono-Actual Sync
+        <li style="font-weight: bold; font-size: 1.1rem;">
+          {$t.appName}
         </li>
       </ul>
       <ul class="icons">
         <li>
+          <button
+            type="button"
+            onclick={toggleLanguage}
+            class="outline lang-toggle-btn"
+            title={$currentLang === 'uk' ? 'Switch to English' : 'Перемкнути на українську'}
+            aria-label="Toggle language"
+          >
+            {$currentLang === 'uk' ? 'UA 🇺🇦' : 'EN 🇬🇧'}
+          </button>
+        </li>
+        <li>
           <a
             rel="noopener noreferrer"
             class="contrast"
-            aria-label="GitHub repository"
-            href="https://github.com/sviatcraft/mono-actual-sync"
+            aria-label={$t.githubRepo}
+            href="https://github.com/denysochek/mono-actual-sync-actual"
             target="_blank"
             ><svg
               xmlns="http://www.w3.org/2000/svg"
@@ -32,10 +48,11 @@
         </li>
         <li>
           <a
-            onclick={toggleTheme}
+            href="#toggle-theme"
+            onclick={(e) => { e.preventDefault(); toggleTheme(); }}
             class="contrast"
             style="cursor: pointer"
-            aria-label="Toggle light/dark mode"
+            aria-label={$t.toggleTheme}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -79,5 +96,14 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 1rem;
+  }
+
+  .lang-toggle-btn {
+    font-size: 0.75rem;
+    font-weight: bold;
+    padding: 0.25rem 0.5rem;
+    margin: 0;
+    border-radius: var(--pico-border-radius);
+    line-height: 1.2;
   }
 </style>

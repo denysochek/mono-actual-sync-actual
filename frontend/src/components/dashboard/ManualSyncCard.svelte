@@ -1,4 +1,5 @@
 <script>
+  import { t } from '../../i18n.js';
   import MappingPicker from './MappingPicker.svelte';
   import SyncControls from './SyncControls.svelte';
 
@@ -19,14 +20,14 @@
 
 <article>
   <header class="dash-header">
-    <strong>Manual Sync Engine</strong>
-    <span class="badge">{activeMappings.length} Active Routes</span>
+    <strong>{$t.manualSyncEngine}</strong>
+    <span class="badge">{$t.activeRoutes(activeMappings.length)}</span>
   </header>
 
   {#if !isReady}
     <div style="padding: 1rem 0;">
-      <mark>⚠️ Configuration Incomplete</mark>
-      <p style="margin-top: 0.5rem;"><small>Please configure your API connections first.</small></p>
+      <mark>{$t.configIncomplete}</mark>
+      <p style="margin-top: 0.5rem;"><small>{$t.configIncompleteSub}</small></p>
     </div>
   {:else}
     <div class="dash-grid">

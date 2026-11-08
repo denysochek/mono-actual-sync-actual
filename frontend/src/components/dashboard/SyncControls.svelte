@@ -1,4 +1,5 @@
 <script>
+  import { t, currentLang } from '../../i18n.js';
   let { config, saveConfig, triggerSync, syncStatus, isBackendSyncing, cooldown, isReady, selectedMappings } =
     $props();
 
@@ -31,13 +32,14 @@
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }
 
-  function generateMonths() {
+  function generateMonths(lang) {
     const months = [];
     const now = new Date();
+    const locale = lang === 'uk' ? 'uk-UA' : 'en-US';
     for (let i = 0; i < 12; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const label = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+      const label = d.toLocaleString(locale, { month: 'long', year: 'numeric' });
       months.push({ value, label });
     }
     return months;
@@ -52,7 +54,7 @@
     return { dateFrom: from, dateTo: to > today ? today : to };
   }
 
-  const months = generateMonths();
+  let months = $derived(generateMonths($currentLang));
 
   let dateRangeValid = $derived(dateFrom && dateTo && dateFrom <= dateTo);
 
@@ -98,15 +100,15 @@
   }
 
   function syncButtonLabel() {
-    if (cooldown > 0) return `⏳ Cooldown: ${cooldown}s`;
-    if (syncStatus === 'success') return '✅ Sync Triggered!';
-    if (syncStatus === 'error') return '❌ Sync Failed';
-    if (mode === 'quick') return `🔄 Sync Last ${customDays} Days`;
+    if (cooldown > 0) return $t.cooldownBtn(cooldown);
+    if (syncStatus === 'success') return $t.syncTriggered;
+    if (syncStatus === 'error') return $t.syncFailed;
+    if (mode === 'quick') return $t.syncLastDays(customDays);
     if (mode === 'month') {
       const m = months.find((m) => m.value === selectedMonth);
-      return `🔄 Sync ${m?.label || selectedMonth}`;
+      return $t.syncMonthBtn(m?.label || selectedMonth);
     }
-    return `🔄 Sync Range`;
+    return $t.syncRangeBtn;
   }
 
   let canSync = $derived(
@@ -123,19 +125,19 @@
       class:active={mode === 'quick'}
       onclick={() => { mode = 'quick'; persistMode(); }}
       type="button"
-    >Quick</button>
+    >{$t.quick}</button>
     <button
       class="seg-btn"
       class:active={mode === 'month'}
       onclick={() => { mode = 'month'; persistMode(); }}
       type="button"
-    >By Month</button>
+    >{$t.byMonth}</button>
     <button
       class="seg-btn"
       class:active={mode === 'daterange'}
       onclick={() => { mode = 'daterange'; persistMode(); }}
       type="button"
-    >Custom Range</button>
+    >{$t.customRange}</button>
   </div>
 
   {#if mode === 'quick'}
@@ -159,13 +161,18 @@
           onclick={() => changeDays(-1)}
           disabled={customDays <= 1 || !isReady || isBackendSyncing}
           aria-label="Decrease days"
-        >
-          &minus;
-        </button>
+        >−</button>
         
-        <div class="stepper-display">
-          {customDays} Day{customDays === 1 ? '' : 's'}
-        </div>
+        <input
+          type="number"
+          min="1"
+          max="366"
+          bind:value={customDays}
+          onchange={persistMode}
+          disabled={!isReady || isBackendSyncing}
+          class="days-input"
+          aria-label="Days to sync"
+        />
         
         <button 
           type="button" 
@@ -173,96 +180,77 @@
           onclick={() => changeDays(1)}
           disabled={customDays >= 366 || !isReady || isBackendSyncing}
           aria-label="Increase days"
-        >
-          &plus;
-        </button>
+        >+</button>
       </fieldset>
     </div>
-  {/if}
 
-  {#if mode === 'month'}
+  {:else if mode === 'month'}
     <div class="tab-content">
       <select
         bind:value={selectedMonth}
+        onchange={persistMode}
         disabled={!isReady || isBackendSyncing}
-        onchange={() => {
-          config.manualMonth = selectedMonth;
-          if (typeof saveConfig === 'function') saveConfig();
-        }}
-        aria-label="Select month"
         style="margin-bottom: 0;"
       >
         {#each months as m}
           <option value={m.value}>{m.label}</option>
         {/each}
       </select>
-      <small style="color: var(--pico-muted-color); display: block; margin-top: 0.35rem;">
-        {(() => { const r = monthToDateRange(selectedMonth); return `${r.dateFrom} → ${r.dateTo}`; })()}
-      </small>
     </div>
-  {/if}
 
-  {#if mode === 'daterange'}
+  {:else if mode === 'daterange'}
     <div class="tab-content">
-      <div class="date-range-row">
-        <div class="date-field">
-          <label for="sync-from"><small>From</small></label>
+      <div class="date-row">
+        <label>
+          {$t.from}
           <input
-            id="sync-from"
             type="date"
             bind:value={dateFrom}
             max={dateTo || todayISO()}
+            onchange={persistMode}
             disabled={!isReady || isBackendSyncing}
-            onchange={() => {
-              config.manualDateFrom = dateFrom;
-              if (typeof saveConfig === 'function') saveConfig();
-            }}
+            style="margin-bottom: 0;"
           />
-        </div>
-        <div class="date-field">
-          <label for="sync-to"><small>To</small></label>
+        </label>
+        <label>
+          {$t.to}
           <input
-            id="sync-to"
             type="date"
             bind:value={dateTo}
             min={dateFrom}
             max={todayISO()}
+            onchange={persistMode}
             disabled={!isReady || isBackendSyncing}
-            onchange={() => {
-              config.manualDateTo = dateTo;
-              if (typeof saveConfig === 'function') saveConfig();
-            }}
+            style="margin-bottom: 0;"
           />
-        </div>
+        </label>
       </div>
-      {#if dateFrom && dateTo && dateFrom > dateTo}
-        <small style="color: var(--pico-del-color);">"From" must be before "To".</small>
+      {#if !dateRangeValid}
+        <small style="color: var(--pico-del-color); margin-top: 0.25rem; display: block;">
+          {$t.dateOrderWarning}
+        </small>
       {/if}
     </div>
   {/if}
 
-  <form
-    onsubmit={(e) => {
-      e.preventDefault();
-      handleSync();
-    }}
-    style="margin-top: 1rem;"
-  >
+  <div style="margin-top: 1rem;">
     <button
-      type="submit"
-      aria-busy={syncStatus === 'syncing' || isBackendSyncing}
+      type="button"
+      onclick={handleSync}
       disabled={!canSync}
-      style="width: 100%;"
+      aria-busy={isBackendSyncing}
+      class="sync-submit-btn"
+      class:secondary={!canSync}
     >
       {syncButtonLabel()}
     </button>
-  </form>
+    {#if selectedMappings.length === 0 && isReady}
+      <small style="color: var(--pico-muted-color); display: block; text-align: center; margin-top: 0.4rem;">
+        {$t.selectAtLeastOneRoute}
+      </small>
+    {/if}
+  </div>
 
-  {#if selectedMappings.length === 0}
-    <p style="margin-top: 0.75rem; margin-bottom: 0; color: var(--pico-del-color); text-align: center;">
-      <small>Select at least 1 mapping to sync.</small>
-    </p>
-  {/if}
 </div>
 
 <style>
@@ -276,99 +264,88 @@
 
   .seg-btn {
     flex: 1;
-    padding: 0.4rem 0.5rem;
     border: none;
     border-radius: 0;
-    background: transparent;
-    color: var(--pico-contrast);
+    margin: 0;
+    padding: 0.4rem 0.5rem;
     font-size: 0.8rem;
     font-weight: 600;
+    background: transparent;
+    color: var(--pico-muted-color);
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
-    margin: 0;
-  }
-
-  .seg-btn:not(:last-child) {
-    border-right: 1px solid var(--pico-form-element-border-color);
   }
 
   .seg-btn.active {
-    background: var(--pico-primary-background);
-    color: var(--pico-secondary-inverse)
-  }
-
-  .seg-btn:hover:not(.active) {
     background: var(--pico-form-element-background-color);
+    color: var(--pico-color);
+    box-shadow: inset 0 0 0 1px var(--pico-primary);
   }
 
   .tab-content {
-    padding: 0.25rem 0;
+    min-height: 72px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 
   .preset-row {
     display: flex;
-    gap: 0.4rem;
+    gap: 0.3rem;
   }
 
   .preset-btn {
     flex: 1;
-    padding: 0.35rem 0.5rem;
+    padding: 0.3rem 0.5rem;
     font-size: 0.8rem;
     font-weight: 600;
     border: 1px solid var(--pico-form-element-border-color);
     border-radius: var(--pico-border-radius);
     background: transparent;
-    color: var(--pico-contrast);
+    color: var(--pico-color);
     cursor: pointer;
-    transition: background 0.15s, color 0.15s;
     margin: 0;
+    transition: background 0.15s;
   }
 
   .preset-btn.active {
     background: var(--pico-primary-background);
-    color: var(--pico-secondary-inverse);
+    color: var(--pico-primary-inverse);
     border-color: var(--pico-primary-background);
   }
 
-  .preset-btn:hover:not(.active):not(:disabled) {
-    background: var(--pico-form-element-background-color);
-  }
-
-  /* New Stepper CSS */
   .stepper-btn {
-    flex: 0 0 3rem; /* Fixed width for the plus/minus buttons */
-    font-size: 1.2rem;
-    font-weight: bold;
+    flex: 0 0 44px;
     padding: 0;
-  }
-
-  .stepper-display {
-    flex: 1;
+    font-size: 1.1rem;
+    font-weight: bold;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-top: 1px solid var(--pico-form-element-border-color);
-    border-bottom: 1px solid var(--pico-form-element-border-color);
-    background: var(--pico-form-element-background-color);
-    font-size: 0.9rem;
+  }
+
+  .days-input {
+    text-align: center;
     font-weight: bold;
-    color: var(--pico-contrast);
+    font-size: 1rem;
   }
 
-  .date-range-row {
-    display: flex;
-    gap: 0.75rem;
+  .date-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
   }
 
-  .date-field {
-    flex: 1;
-  }
-
-  .date-field label {
-    margin-bottom: 0.15rem;
-  }
-
-  .date-field input {
+  .date-row label {
+    font-size: 0.75rem;
+    color: var(--pico-muted-color);
     margin-bottom: 0;
+  }
+
+  .sync-submit-btn {
+    width: 100%;
+    margin-bottom: 0;
+    padding: 0.75rem 1rem;
+    font-weight: bold;
   }
 </style>

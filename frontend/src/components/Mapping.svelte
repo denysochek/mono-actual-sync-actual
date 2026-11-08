@@ -1,4 +1,5 @@
 <script>
+  import { t } from '../i18n.js';
   let { config = $bindable(), saveConfig, saveStatus, changeView, fetchApiData, cooldown } = $props();
 
   if (!config.cards || config.cards.length === 0) addMapping();
@@ -34,8 +35,8 @@
 
 <div>
   <hgroup style="margin-bottom: 0;">
-    <h2>Card Mapping</h2>
-    <p>Link your Monobank cards to the correct accounts in Actual Budget.</p>
+    <h2>{$t.mappingTitle}</h2>
+    <p>{$t.mappingDesc}</p>
   </hgroup>
   
   {#if isConnected}
@@ -48,7 +49,7 @@
         aria-busy={isFetching}
         disabled={cooldown > 0 || isFetching}
       >
-        {cooldown > 0 ? `⏳ Wait ${cooldown}s` : '🔄 Fetch Latest Accounts Data'}
+        {cooldown > 0 ? $t.waitCooldown(cooldown) : $t.fetchLatestData}
       </button>
     </div>
   {/if}
@@ -60,11 +61,11 @@
   {#if !isConnected}
     <article style="margin-top: 1.5rem;">
       <p style="margin-bottom: 1rem;">
-        <mark>⚠️ Connect to Monobank and Actual first</mark><br />
-        <small>Card mapping requires verified API credentials and a budget sync ID.</small>
+        <mark>{$t.connectFirstMsg}</mark><br />
+        <small>{$t.connectFirstSub}</small>
       </p>
       <button type="button" class="secondary" style="width: auto;" onclick={() => changeView('connections')}>
-        Go to Connections
+        {$t.goToConnections}
       </button>
     </article>
   {:else}
@@ -74,16 +75,16 @@
           <table class="striped">
             <thead>
               <tr>
-                <th scope="col" style="width: 45%;">Monobank Account</th>
-                <th scope="col" style="width: 45%;">Actual Budget Account</th>
-                <th scope="col" style="width: 10%; text-align: right;">Actions</th>
+                <th scope="col" style="width: 45%;">{$t.colMonoAccount}</th>
+                <th scope="col" style="width: 45%;">{$t.colActualAccount}</th>
+                <th scope="col" style="width: 10%; text-align: right;">{$t.colActions}</th>
               </tr>
             </thead>
             <tbody>
               {#if !config.cards || config.cards.length === 0}
                 <tr>
                   <td colspan="3" style="text-align: center; padding: 2rem;">
-                    <em>No cards mapped yet. Click below to add one.</em>
+                    <em>{$t.noCardsYet}</em>
                   </td>
                 </tr>
               {:else}
@@ -91,10 +92,10 @@
                   <tr>
                     <td>
                       <select bind:value={card.monoCardId} style="margin-bottom: 0;" required>
-                        <option value="" disabled>Select a source...</option>
+                        <option value="" disabled>{$t.selectSource}</option>
                         
                         {#if config.accountCache.monoCards.length === 0 && card.monoCardId}
-                           <option value={card.monoCardId}>{card.monoCardId} (Data not loaded)</option>
+                           <option value={card.monoCardId}>{card.monoCardId} {$t.dataNotLoaded}</option>
                         {/if}
                         
                         {#each sortedMonoCards as mono}
@@ -104,10 +105,10 @@
                     </td>
                     <td>
                       <select bind:value={card.actualAccountId} style="margin-bottom: 0;" required>
-                        <option value="" disabled>Select a destination...</option>
+                        <option value="" disabled>{$t.selectDest}</option>
                         
                         {#if config.accountCache.actualAccounts.length === 0 && card.actualAccountId}
-                           <option value={card.actualAccountId}>{card.actualAccountId} (Data not loaded)</option>
+                           <option value={card.actualAccountId}>{card.actualAccountId} {$t.dataNotLoaded}</option>
                         {/if}
                         
                         {#each config.accountCache.actualAccounts as actual}
@@ -121,7 +122,7 @@
                         class="secondary outline" 
                         style="margin-bottom: 0; padding: 0.5rem 1rem;"
                         disabled={config.cards.length <= 1}
-                        aria-label={`Remove mapping ${i + 1}`}
+                        aria-label={$t.removeMapping(i + 1)}
                         title="Remove mapping"
                         onclick={() => removeMapping(i)}
                       >
@@ -137,14 +138,14 @@
 
         <div style="display: flex; justify-content: right;">
           <button type="button" class="contrast outline" onclick={addMapping} style="width: auto; margin-bottom: 0">
-            + Add Card Mapping
+            {$t.addCardMapping}
           </button>
         </div>
       </article>
 
       <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
         <button type="submit" aria-busy={saveStatus === 'saving'} style="width: auto; padding: 0.5rem 1.5rem;">
-          {#if saveStatus === 'saved'}✅ Mappings Saved{:else if saveStatus === 'error'}❌ Error Saving{:else}💾 Save Changes{/if}
+          {#if saveStatus === 'saved'}{$t.mappingsSaved}{:else if saveStatus === 'error'}{$t.errorSaving}{:else}{$t.saveChanges}{/if}
         </button>
       </div>
     </form>

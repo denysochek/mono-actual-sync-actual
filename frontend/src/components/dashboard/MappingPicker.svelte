@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { t } from '../../i18n.js';
 
   let { config, activeMappings, selectedMappings = $bindable([]) } = $props();
   const STORAGE_KEY = 'mono_actual_sync.selectedMappings.v1';
@@ -75,17 +76,17 @@
 
 <div>
   <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1rem;">
-    <strong style="font-size: 0.9rem; color: var(--pico-muted-color);">Select Routes to Sync</strong>
+    <strong style="font-size: 0.9rem; color: var(--pico-muted-color);">{$t.selectRoutesToSync}</strong>
     <div style="font-size: 0.75rem; display: flex; gap: 0.5rem; align-items: center;">
-      <a href="#all" onclick={(e) => { e.preventDefault(); selectAll(); }} style="text-decoration: none;">All</a>
+      <a href="#all" onclick={(e) => { e.preventDefault(); selectAll(); }} style="text-decoration: none;">{$t.selectAll}</a>
       <span style="color: var(--pico-muted-border-color);">|</span>
-      <a href="#none" class="secondary" onclick={(e) => { e.preventDefault(); selectNone(); }} style="text-decoration: none;">None</a>
+      <a href="#none" class="secondary" onclick={(e) => { e.preventDefault(); selectNone(); }} style="text-decoration: none;">{$t.selectNone}</a>
     </div>
   </div>
 
   {#if activeMappings.length === 0}
     <div style="text-align: center; padding: 2rem; border: 1px dashed var(--pico-muted-border-color); border-radius: var(--pico-border-radius);">
-      <p style="margin: 0; color: var(--pico-muted-color); font-size: 0.9rem;">No cards mapped yet.</p>
+      <p style="margin: 0; color: var(--pico-muted-color); font-size: 0.9rem;">{$t.noActiveMappings}</p>
     </div>
   {:else}
     <div class="mapping-grid">
@@ -98,9 +99,9 @@
             <input type="checkbox" {checked} onchange={() => toggleSelection(key)} style="margin: 0;" />
           </div>
           <div class="mapping-names">
-            <span class="mapping-left" title={getMonoName(route.monoCardId)}>{getMonoName(route.monoCardId)}</span>
-            <span class="mapping-arrow">➔</span>
-            <span class="mapping-right" title={getActualName(route.actualAccountId)}>{getActualName(route.actualAccountId)}</span>
+            <span class="mono-name">{getMonoName(route.monoCardId)}</span>
+            <span class="arrow">➔</span>
+            <span class="actual-name">{getActualName(route.actualAccountId)}</span>
           </div>
         </label>
       {/each}
@@ -118,52 +119,53 @@
   .mapping-card {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--pico-muted-border-color);
+    gap: 0.75rem;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--pico-form-element-border-color);
     border-radius: var(--pico-border-radius);
+    background: transparent;
     cursor: pointer;
-    transition: all 0.2s ease;
-    margin: 0; /* Override Pico label margin */
-    background: var(--pico-background-color);
+    margin: 0;
+    transition: background 0.15s, border-color 0.15s;
+    user-select: none;
   }
 
   .mapping-card:hover {
-    border-color: var(--pico-primary-hover);
+    background: var(--pico-form-element-background-color);
   }
 
-  /* The Selected State! */
   .mapping-card.is-selected {
     border-color: var(--pico-primary);
-    background: var(--pico-form-element-background-color);
+    background: rgba(0, 150, 60, 0.05);
   }
 
   .checkbox-wrapper {
     display: flex;
     align-items: center;
+    flex-shrink: 0;
   }
 
   .mapping-names {
-    flex-grow: 1;
     display: flex;
     align-items: center;
-    justify-content: start;
     gap: 0.5rem;
-    min-width: 0;
-    font-size: 0.9rem;
-  }
-
-  .mapping-left,
-  .mapping-right {
-    white-space: nowrap;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    line-height: 1.2;
     overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 45%;
   }
 
-  .mapping-arrow {
+  .mono-name {
+    font-weight: 600;
+    color: var(--pico-color);
+  }
+
+  .arrow {
     color: var(--pico-muted-color);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
+  }
+
+  .actual-name {
+    color: var(--pico-muted-color);
   }
 </style>

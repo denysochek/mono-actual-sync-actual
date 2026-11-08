@@ -1,4 +1,5 @@
 <script>
+  import { t } from '../i18n.js';
   let { activeTab = $bindable() } = $props();
 
   function setTab(tab) {
@@ -15,7 +16,7 @@
            aria-current={activeTab === 'dashboard' ? 'page' : undefined}
            class={activeTab !== 'dashboard' ? 'secondary' : ''}>
           <span class="icon">🏠</span> 
-          <span class="label">Dashboard</span>
+          <span class="label">{$t.dashboard}</span>
         </a>
       </li>
       
@@ -25,7 +26,7 @@
            aria-current={activeTab === 'connections' ? 'page' : undefined}
            class={activeTab !== 'connections' ? 'secondary' : ''}>
           <span class="icon">🔌</span> 
-          <span class="label">Connections</span>
+          <span class="label">{$t.connections}</span>
         </a>
       </li>
       
@@ -35,7 +36,7 @@
            aria-current={activeTab === 'mapping' ? 'page' : undefined}
            class={activeTab !== 'mapping' ? 'secondary' : ''}>
           <span class="icon">🔗</span> 
-          <span class="label">Mapping</span>
+          <span class="label">{$t.mapping}</span>
         </a>
       </li>
     </ul>
@@ -98,35 +99,31 @@
       bottom: auto;
       box-shadow: none;
       background-color: transparent;
-      border-top: none;
       padding: 0;
-    }
-
-    .app-nav > nav {
-      position: sticky;
-      top: 120px;
+      border-top: none;
     }
 
     .nav-links {
       flex-direction: column;
-      gap: 0.25rem;
+      gap: 0.5rem;
     }
 
     .nav-links li {
+      width: 100%;
       text-align: left;
     }
 
     .nav-links a {
       flex-direction: row;
-      font-size: 1rem;
-      padding: 0.5rem 1rem;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      gap: 0.75rem;
     }
 
     .icon {
-
-      font-size: 1rem;
+      font-size: 1.1rem;
       margin-bottom: 0;
-      margin-right: 0.75rem;
     }
   }
 </style>
