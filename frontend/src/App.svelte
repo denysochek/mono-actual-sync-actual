@@ -113,7 +113,9 @@
       
       if (res.ok) {
         config.accountCache = data.data; 
-        
+        if (data.discoveredActualUrl && data.discoveredActualUrl !== config.actualUrl) {
+          config.actualUrl = data.discoveredActualUrl;
+        }
         startCooldown(60); 
         return { success: true };
       } else if (res.status === 429) {

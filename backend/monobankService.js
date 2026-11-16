@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { discoverWorkingActualUrl } = require('./actualDiscovery.js');
 
 /**
  * Lazy-loads `@actual-app/api` to avoid crashes at boot
@@ -232,12 +233,25 @@ async function sync(config) {
     fs.mkdirSync(cacheDir, { recursive: true });
   }
 
+  let effectiveActualUrl = actualUrl;
+
   try {
-    if (!actualUrl) {
-      throw makeStageError(
-        'Actual Budget URL is missing in config. Open Connections, set Actual URL, and save.',
-        { code: 'ACTUAL_URL_MISSING', stage: 'config' }
-      );
+    if (!effectiveActualUrl) {
+      // Try auto-discovery across subnets before giving up
+      const discovered = await discoverWorkingActualUrl('');
+      if (discovered) {
+        effectiveActualUrl = discovered;
+        config.actualUrl = discovered;
+        console.log(`🔍 Auto-discovered Actual Budget server at ${discovered}`);
+        if (typeof config?.onActualUrlUpdated === 'function') {
+          config.onActualUrlUpdated(discovered);
+        }
+      } else {
+        throw makeStageError(
+          'Actual Budget URL is missing in config. Open Connections, set Actual URL, and save.',
+          { code: 'ACTUAL_URL_MISSING', stage: 'config' }
+        );
+      }
     }
     if (!actualSyncId) {
       throw makeStageError(
@@ -248,18 +262,41 @@ async function sync(config) {
 
     try {
       const maxAttempts = 3;
+      let hasTriedDiscovery = false;
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
           await actualApi().init({
             dataDir: cacheDir,
-            serverURL: actualUrl,
+            serverURL: effectiveActualUrl,
             password: actualPassword,
           });
           actualInitialized = true;
           break;
         } catch (innerErr) {
           const msg = String(innerErr?.message || innerErr);
-          const shouldRetry = isLikelyNetworkFailureMessage(msg) && attempt < maxAttempts;
+          const isNetworkFail = isLikelyNetworkFailureMessage(msg);
+
+          if (isNetworkFail && !hasTriedDiscovery) {
+            hasTriedDiscovery = true;
+            console.warn(`⚠️ Actual Budget unreachable at ${effectiveActualUrl}. Scanning Umbrel subnets for new IP...`);
+            updateSyncProgress({
+              phase: 'init',
+              initLastError: `Scanning subnets for Actual Budget...`,
+            });
+            const newUrl = await discoverWorkingActualUrl(effectiveActualUrl);
+            if (newUrl && newUrl !== effectiveActualUrl) {
+              console.log(`✨ Re-discovered Actual Budget at new address: ${newUrl}`);
+              effectiveActualUrl = newUrl;
+              config.actualUrl = newUrl;
+              if (typeof config?.onActualUrlUpdated === 'function') {
+                config.onActualUrlUpdated(newUrl);
+              }
+              // Retry immediately with the newly discovered URL
+              continue;
+            }
+          }
+
+          const shouldRetry = isNetworkFail && attempt < maxAttempts;
           if (shouldRetry) {
             const waitMs = attempt === 1 ? 1000 : attempt === 2 ? 2000 : 4000;
             console.warn(
@@ -278,6 +315,7 @@ async function sync(config) {
         }
       }
     } catch (err) {
+      config.actualUrl = effectiveActualUrl;
       throw wrapActualInitOrDownloadError(config, err, 'actual_init');
     }
 
@@ -467,20 +505,54 @@ async function fetchAccountsData(config) {
 	    // 1. Fetch Actual Budget accounts
 	    const cacheDir = config.cacheDir || path.join(__dirname, 'data', '.cache');
 	    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
-	    const actualUrl = typeof config?.actualUrl === 'string' ? config.actualUrl.trim() : '';
+	    let effectiveActualUrl = typeof config?.actualUrl === 'string' ? config.actualUrl.trim() : '';
 	    const actualPassword = typeof config?.actualPassword === 'string' ? config.actualPassword : '';
 
 	    try {
-	      await actualApi().init({
-	        dataDir: cacheDir,
-	        serverURL: actualUrl,
-	        password: actualPassword,
-	      });
+	      let initialized = false;
+	      try {
+	        if (effectiveActualUrl) {
+	          await actualApi().init({
+	            dataDir: cacheDir,
+	            serverURL: effectiveActualUrl,
+	            password: actualPassword,
+	          });
+	          initialized = true;
+	        }
+	      } catch (firstErr) {
+	        const firstMsg = String(firstErr?.message || firstErr);
+	        if (!isLikelyNetworkFailureMessage(firstMsg)) {
+	          throw firstErr;
+	        }
+	      }
+
+	      if (!initialized) {
+	        console.warn(`⚠️ Actual Budget not responding at "${effectiveActualUrl}". Auto-scanning Umbrel subnets for active instance...`);
+	        const discovered = await discoverWorkingActualUrl(effectiveActualUrl);
+	        if (discovered) {
+	          console.log(`✨ Found Actual Budget server at ${discovered}!`);
+	          effectiveActualUrl = discovered;
+	          config.actualUrl = discovered;
+	          if (typeof config?.onActualUrlUpdated === 'function') {
+	            config.onActualUrlUpdated(discovered);
+	          }
+	          await actualApi().init({
+	            dataDir: cacheDir,
+	            serverURL: effectiveActualUrl,
+	            password: actualPassword,
+	          });
+	          initialized = true;
+	        }
+	      }
+
+	      if (!initialized) {
+	        throw new Error(`Could not reach Actual server at ${effectiveActualUrl || 'any known Umbrel subnets'}.`);
+	      }
 	      actualInitialized = true;
 	    } catch (err) {
 	      const msg = String(err?.message || err);
 	      if (isLikelyNetworkFailureMessage(msg)) {
-	        throw new Error(`Actual Budget Error: Could not reach server at ${config.actualUrl}. Check if it is running. (Details: ${msg})`);
+	        throw new Error(`Actual Budget Error: Could not reach server at ${config.actualUrl || effectiveActualUrl}. Check if it is running. (Details: ${msg})`);
 	      }
 	      throw new Error(`Actual Budget Error: Initialization failed. Check your Server URL. (${msg})`);
 	    }
@@ -495,7 +567,7 @@ async function fetchAccountsData(config) {
 	      } else if (err.message.includes('password')) {
 	        throw new Error(`Actual Budget Error: Invalid Server Password.`);
 	      } else if (err.message.includes('fetch') || err.message.includes('network-failure')) {
-	        throw new Error(`Actual Budget Error: Could not reach server at ${config.actualUrl}. Check if it is running.`);
+	        throw new Error(`Actual Budget Error: Could not reach server at ${config.actualUrl || effectiveActualUrl}. Check if it is running.`);
 	      }
 	      throw new Error(`Actual Budget Error: ${err.message}`);
 	    } finally {

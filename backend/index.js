@@ -29,6 +29,7 @@ process.on('uncaughtException', (err) => {
 });
 
 const { sync, fetchAccountsData, isSyncing, getSyncProgress } = require('./monobankService.js');
+const { discoverWorkingActualUrl } = require('./actualDiscovery.js');
 
 const app = express();
 const PORT = process.env.PORT || 9191;
@@ -257,6 +258,23 @@ let lastMonoCall = 0;
 // --- Cron ---
 let activeCronTask = null;
 
+/** Helper to persist updated Actual URL when auto-discovered */
+async function saveDiscoveredActualUrl(newUrl) {
+  try {
+    const fileData = await fs.readFile(CONFIG_PATH, 'utf-8');
+    const config = decryptData(JSON.parse(fileData).encryptedPayload);
+    if (config.actualUrl !== newUrl) {
+      config.actualUrl = newUrl;
+      const encryptedString = encryptData(config);
+      await writeConfigAtomically({ encryptedPayload: encryptedString });
+      updateCronJob(config);
+      console.log(`💾 Persisted newly discovered Actual Budget URL: ${newUrl}`);
+    }
+  } catch (e) {
+    console.warn('Could not persist auto-discovered Actual URL:', e.message);
+  }
+}
+
 function updateCronJob(config) {
   if (activeCronTask) {
     activeCronTask.stop();
@@ -274,7 +292,11 @@ function updateCronJob(config) {
       const previousLastMonoCall = lastMonoCall;
       lastMonoCall = Date.now();
 
-      sync({ ...config, daysToSync: AUTOMATION_SYNC_DAYS }).catch((err) => {
+      sync({
+        ...config,
+        daysToSync: AUTOMATION_SYNC_DAYS,
+        onActualUrlUpdated: saveDiscoveredActualUrl,
+      }).catch((err) => {
         const safeToReleaseGatekeeper =
           err?.stage === 'config' ||
           err?.code === 'ACTUAL_BAD_RESPONSE' ||
@@ -358,13 +380,16 @@ app.post('/api/fetch-accounts', async (req, res) => {
   lastMonoCall = Date.now();
 
   try {
+    config.onActualUrlUpdated = (newUrl) => {
+      config.actualUrl = newUrl;
+    };
     const data = await fetchAccountsData(config);
     
     config.accountCache = data;
     const encryptedString = encryptData(config);
     await writeConfigAtomically({ encryptedPayload: encryptedString });
 
-    res.json({ success: true, data });
+    res.json({ success: true, data, discoveredActualUrl: config.actualUrl });
   } catch (error) {
     const message = String(error?.message || '');
     const safeToReleaseGatekeeper =
@@ -464,6 +489,8 @@ app.post('/api/sync', async (req, res) => {
 
       config.cards = filtered;
     }
+    
+    config.onActualUrlUpdated = saveDiscoveredActualUrl;
     
 	    sync(config)
 	      .catch(err => {
